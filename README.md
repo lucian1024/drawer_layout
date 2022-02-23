@@ -1,2 +1,2 @@
 # drawer_layout
-Flutter horizontal drawer widget.
+A flutter widget which supports to open drawer from left or right.
