@@ -95,6 +95,10 @@ class DrawerLayoutState extends State<DrawerLayout> with SingleTickerProviderSta
   }
 
   void _handleDragDown(DragDownDetails details) {
+    if (controller.isLocked()) {
+      return;
+    }
+
     // if the drawers are closed when drag start, reset gravity to null
     if (controller.value == controller.lowerBound) {
       controller.gravity = null;
@@ -104,6 +108,10 @@ class DrawerLayoutState extends State<DrawerLayout> with SingleTickerProviderSta
   }
 
   void _move(DragUpdateDetails details) {
+    if (controller.isLocked()) {
+      return;
+    }
+
     if (controller.gravity == null) {
       // the direction of the first movement determines which drawer to open
       final gravity = details.delta.dx < 0 ? DrawerGravity.right: DrawerGravity.left;
@@ -128,6 +136,10 @@ class DrawerLayoutState extends State<DrawerLayout> with SingleTickerProviderSta
   }
 
   void _settle({DragEndDetails? details}) {
+    if (controller.isLocked()) {
+      return;
+    }
+
     if (controller.value == controller.lowerBound
       || controller.value == controller.upperBound) {
       return;

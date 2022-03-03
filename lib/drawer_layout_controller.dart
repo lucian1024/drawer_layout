@@ -11,24 +11,56 @@ enum DrawerGravity {
   right,
 }
 
+enum DrawerLockMode {
+  left,
+  right,
+  unlock
+}
+
 /// The value of [DrawerLayoutController] changes from 0 to 1, the drawer changes from
 /// closed state to opened state.
 class DrawerLayoutController extends AnimationController {
   DrawerLayoutController({
     required TickerProvider vsync,
     this.speed = 1,
+    DrawerLockMode lockMode = DrawerLockMode.unlock,
     Duration duration = const Duration(milliseconds: 246),
   }) : super(
     value: 0,
     duration: duration,
     vsync: vsync
-  );
+  ) {
+    _lockMode = lockMode;
+    _notifyLockMode();
+  }
 
   /// The speed to open or close the drawer
   final double speed;
 
   /// Indicate which drawer is opening or opened, null means all drawers are closed
   DrawerGravity? gravity;
+
+  late DrawerLockMode _lockMode;
+  set lockMode(DrawerLockMode lockMode) {
+    if (_lockMode == lockMode) {
+      return;
+    }
+
+    _lockMode = lockMode;
+    _notifyLockMode();
+  }
+  DrawerLockMode get lockMode => _lockMode;
+  bool isLocked() => _lockMode == DrawerLockMode.left
+      || _lockMode == DrawerLockMode.right;
+  void _notifyLockMode() {
+    if (_lockMode == DrawerLockMode.left) {
+      gravity = DrawerGravity.left;
+      value = 1;
+    } else if (_lockMode == DrawerLockMode.right) {
+      gravity = DrawerGravity.right;
+      value = 1;
+    }
+  }
 
   /// Check whether the drawer is opened or opening, exclude dragging to open since
   /// can not forecast dragging is to open or close drawer.
@@ -69,18 +101,12 @@ class DrawerLayoutController extends AnimationController {
     return false;
   }
 
-  /// Check whether the drawer is closed or closing, exclude drag to close
-  // bool isDrawerClosedEx(DrawerGravity gravity) {
-  //   if (this.gravity != gravity || ((!isAnimating && value == lowerBound)
-  //       || (isAnimating && status == AnimationStatus.reverse))) {
-  //     return true;
-  //   }
-  //
-  //   return false;
-  // }
-
   /// Open the drawer
   Future<void> openDrawer(DrawerGravity gravity, {bool animate = true}) async {
+    if (isLocked()) {
+      return;
+    }
+
     // if the drawer has been opened, do nothing.
     if (isDrawerOpen(gravity)) {
       return;
@@ -110,6 +136,10 @@ class DrawerLayoutController extends AnimationController {
   /// @param gravity: The drawer to close. If null, try to close the opened
   ///                 or opening drawer currently.
   Future<void> closeDrawer({bool animate = true}) async {
+    if (isLocked()) {
+      return;
+    }
+
     if (this.gravity == null) {
       // no drawer is opened or opening
       return;
