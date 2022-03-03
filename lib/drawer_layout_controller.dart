@@ -30,43 +30,66 @@ class DrawerLayoutController extends AnimationController {
   /// Indicate which drawer is opening or opened, null means all drawers are closed
   DrawerGravity? gravity;
 
-  /// Check whether the drawer is opened
-  bool isDrawerOpen(DrawerGravity gravity) {
-    if (this.gravity == gravity && value == upperBound && !isAnimating) {
+  /// Check whether the drawer is opened or opening, exclude dragging to open since
+  /// can not forecast dragging is to open or close drawer.
+  bool isDrawerOpen(DrawerGravity gravity, {bool includeOpening = false}) {
+    if (this.gravity == gravity) {
+      if (value == upperBound && !isAnimating) {
+        // the drawer is opened
+        return true;
+      }
+
+      if (includeOpening && isAnimating && status == AnimationStatus.forward) {
+        // the drawer is opening
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  /// Check whether the drawer is closed or closing, exclude dragging to close since
+  /// can not forecast dragging is to open or close drawer.
+  bool isDrawerClose(DrawerGravity gravity, {bool includeClosing = false}) {
+    if (this.gravity != gravity) {
+      // the drawer is closed
+      return true;
+    }
+
+    if (value == lowerBound && !isAnimating) {
+      // the drawer is closed
+      return true;
+    }
+
+    if (includeClosing && isAnimating && status == AnimationStatus.reverse) {
+      // the drawer is closing
       return true;
     }
 
     return false;
   }
 
-  /// Check whether the drawer is opened or opening
-  bool isDrawerOpenEx(DrawerGravity gravity) {
-    if (this.gravity == gravity && ((!isAnimating && value == upperBound)
-        || (isAnimating && status == AnimationStatus.forward))) {
-      return true;
-    }
-
-    return false;
-  }
-
-  /// Check whether the drawer is closed
-  bool isDrawerClosed(DrawerGravity gravity) => this.gravity == null;
-
-  /// Check whether the drawer is closed or closing
-  bool isDrawerClosedEx(DrawerGravity gravity) {
-    if (this.gravity == null || (this.gravity == gravity
-        && isAnimating && status == AnimationStatus.reverse)) {
-      return true;
-    }
-
-    return false;
-  }
+  /// Check whether the drawer is closed or closing, exclude drag to close
+  // bool isDrawerClosedEx(DrawerGravity gravity) {
+  //   if (this.gravity != gravity || ((!isAnimating && value == lowerBound)
+  //       || (isAnimating && status == AnimationStatus.reverse))) {
+  //     return true;
+  //   }
+  //
+  //   return false;
+  // }
 
   /// Open the drawer
   Future<void> openDrawer(DrawerGravity gravity, {bool animate = true}) async {
-    // if the drawer has been opened or is opening, do nothing.
-    if (isDrawerOpenEx(gravity)) {
+    // if the drawer has been opened, do nothing.
+    if (isDrawerOpen(gravity)) {
       return;
+    }
+
+    // if the other drawer is opened or opening or closing, close it first
+    if (this.gravity != null && this.gravity != gravity) {
+      stop();
+      await closeDrawer();
     }
 
     // if the drawer is closing, stop.
@@ -86,13 +109,18 @@ class DrawerLayoutController extends AnimationController {
   ///
   /// @param gravity: The drawer to close. If null, try to close the opened
   ///                 or opening drawer currently.
-  Future<void> closeDrawer(DrawerGravity gravity, {bool animate = true}) async {
-    // if the drawer has been closed or is closing, do nothing.
-    if (isDrawerClosedEx(gravity)) {
+  Future<void> closeDrawer({bool animate = true}) async {
+    if (this.gravity == null) {
+      // no drawer is opened or opening
       return;
     }
 
-    // if the drawer is opening, stop.
+    // if the drawer has been closed, do nothing.
+    if (isDrawerClose(this.gravity!)) {
+      return;
+    }
+
+    // if the drawer is opening or closing, stop.
     if (isAnimating) {
        stop();
     }
@@ -102,5 +130,6 @@ class DrawerLayoutController extends AnimationController {
     } else {
       value = 0;
     }
+    this.gravity = null;
   }
 }

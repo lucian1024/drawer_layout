@@ -80,7 +80,7 @@ class DrawerLayoutState extends State<DrawerLayout> with SingleTickerProviderSta
   @override
   void initState() {
     controller = widget.controller ?? DrawerLayoutController(vsync: this);
-    controller..addListener(_animationChanged)..addStatusListener(_animationStatusChanged);
+    controller..addListener(_animationChanged);
 
     _scrimColorTween = ColorTween(begin: Colors.transparent, end: widget.scrimColor ?? Colors.black54);
     
@@ -94,21 +94,12 @@ class DrawerLayoutState extends State<DrawerLayout> with SingleTickerProviderSta
     });
   }
 
-  ///
-  void _animationStatusChanged(AnimationStatus status) {
-
-    // switch(status) {
-    //   case AnimationStatus.dismissed:
-    //     controller.gravity = null;
-    //     break;
-    //     case AnimationStatus/
-    // }
-    if (status == AnimationStatus.dismissed) {
+  void _handleDragDown(DragDownDetails details) {
+    // if the drawers are closed when drag start, reset gravity to null
+    if (controller.value == controller.lowerBound) {
       controller.gravity = null;
     }
-  }
 
-  void _handleDragDown(DragDownDetails details) {
     controller.stop();
   }
 
@@ -136,14 +127,14 @@ class DrawerLayoutState extends State<DrawerLayout> with SingleTickerProviderSta
     controller.value += delta;
   }
 
-  void _settle(DragEndDetails details) {
-    if (controller.isDrawerOpenEx(controller.gravity!)
-        || controller.isDrawerClosedEx(controller.gravity!)) {
+  void _settle({DragEndDetails? details}) {
+    if (controller.value == controller.lowerBound
+      || controller.value == controller.upperBound) {
       return;
     }
 
     // if sliding velocity is very fast, open or close the drawer directly.
-    if (details.velocity.pixelsPerSecond.dx.abs() >= _minFlingVelocity) {
+    if (details != null && details.velocity.pixelsPerSecond.dx.abs() >= _minFlingVelocity) {
       double visualVelocity = (details.velocity.pixelsPerSecond.dx) / _drawerWidth!;
 
       // for the right drawer, slide to the left means opening the drawer. Thus,
@@ -153,10 +144,10 @@ class DrawerLayoutState extends State<DrawerLayout> with SingleTickerProviderSta
       }
 
       controller.fling(velocity: visualVelocity);
-    } else if (controller.value > 0.5) {
+    } else if (controller.value > (controller.upperBound - controller.lowerBound) / 2) {
       controller.openDrawer(controller.gravity!);
     } else {
-      controller.closeDrawer(controller.gravity!);
+      controller.closeDrawer();
     }
   }
 
@@ -194,37 +185,68 @@ class DrawerLayoutState extends State<DrawerLayout> with SingleTickerProviderSta
                     width: _drawerWidth,
                     child: GestureDetector(
                       onHorizontalDragUpdate: _move,
-                      onHorizontalDragEnd: _settle,
-                      child: controller.gravity == DrawerGravity.left ? widget.leftDrawer : widget.rightDrawer,
+                      onHorizontalDragEnd: (details) { _settle(details: details); },
+                      onHorizontalDragCancel: _settle,
+                      child: NotificationListener(
+                        onNotification: (notification) {
+                          if (notification is ScrollStartNotification) {
+                          }
+                          if (notification is OverscrollNotification) {
+                            if (notification.dragDetails != null) {
+                              _move(notification.dragDetails!);
+                            }
+                          }
+                          if (notification is ScrollEndNotification) {
+                              _settle(details: notification.dragDetails);
+                          }
+                          return true;
+                        },
+                        child: controller.gravity == DrawerGravity.left ? widget.leftDrawer! : widget.rightDrawer!,
+                      ),
                     ),
                   ),
                 ),
               ),
               GestureDetector(
-                onTap: () {},
+                onTap: controller.value == controller.upperBound ? controller.closeDrawer : null,
                 onHorizontalDragDown: _handleDragDown,
                 onHorizontalDragUpdate: _move,
-                onHorizontalDragEnd: _settle,
+                onHorizontalDragEnd: (details) { _settle(details: details); },
+                onHorizontalDragCancel: _settle,
                 excludeFromSemantics: true,
                 child: RepaintBoundary(
                   child: Align(
-                    // the width of the Align should be the content's width minus the width of the opened drawer.
-                    //
-                    // the top-left position offset of content widget should be _drawerWidth * controller.value
-                    // for left drawer and -1 * _drawerWidth * controller.value for right drawer.
-                    widthFactor: (_contentWidth! - _drawerWidth! * controller.value) / _contentWidth!,
-                    alignment: controller.gravity == DrawerGravity.left ? Alignment(-3, 0) : Alignment(1, 0),
-                    child: RepaintBoundary(
-                        child: Stack(
-                          children: [
-                            widget.content,
-                            if (controller.value > 0)
-                              Container(
-                                color: _scrimColorTween.evaluate(controller),
+                    alignment: controller.gravity == DrawerGravity.left ? Alignment.centerRight : Alignment.centerLeft,
+                    child: Align(
+                      widthFactor: (_contentWidth! - _drawerWidth! * controller.value) / _contentWidth!,
+                      alignment: controller.gravity == DrawerGravity.left ? Alignment.centerLeft : Alignment.centerRight,
+                      child: RepaintBoundary(
+                          child: Stack(
+                            children: [
+                              NotificationListener(
+                                  onNotification: (notification) {
+                                    if (notification is ScrollStartNotification) {
+                                    }
+                                    if (notification is OverscrollNotification) {
+                                      if (notification.dragDetails != null) {
+                                        _move(notification.dragDetails!);
+                                      }
+                                    }
+                                    if (notification is ScrollEndNotification) {
+                                      _settle(details: notification.dragDetails);
+                                    }
+                                    return true;
+                                  },
+                                  child: widget.content
                               ),
-                          ]
-                        )
-                    )
+                              if (controller.value > controller.lowerBound)
+                                Container(
+                                  color: _scrimColorTween.evaluate(controller),
+                                ),
+                            ]
+                          )
+                      )
+                    ),
                   ),
                 ),
               ),

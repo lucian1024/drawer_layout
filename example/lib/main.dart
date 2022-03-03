@@ -1,4 +1,3 @@
-
 import 'package:drawer_layout/drawer_layout.dart';
 import 'package:drawer_layout/drawer_layout_controller.dart';
 import 'package:flutter/material.dart';
@@ -29,7 +28,8 @@ class MyHomePage extends StatefulWidget {
   _MyHomePageState createState() => _MyHomePageState();
 }
 
-class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateMixin {
+class _MyHomePageState extends State<MyHomePage>
+    with SingleTickerProviderStateMixin {
   late DrawerLayoutController _drawerController;
 
   @override
@@ -60,41 +60,72 @@ class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateM
               ]
             )
           ),
+          padding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Container(
-                color: Colors.green,
-                child: TextButton(
-                  onPressed: () {
-                    _drawerController.openDrawer(DrawerGravity.left);
-                  },
-                  child: Text(
-                    "Open left drawer",
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.white
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Container(
+                    color: Colors.green,
+                    child: TextButton(
+                        onPressed: () {
+                          _drawerController.openDrawer(DrawerGravity.left);
+                        },
+                        child: Text(
+                          "Open left drawer",
+                          style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.white
+                          ),
+                        )
                     ),
+                  ),
+                  Container(
+                    color: Colors.green,
+                    child: TextButton(
+                        onPressed: () {
+                          _drawerController.openDrawer(DrawerGravity.right);
+                        },
+                        child: Text(
+                          "Open right drawer",
+                          style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.white
+                          ),
+                        )
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: 15,),
+              Flexible(
+                child: DefaultTabController(
+                  length: 3,
+                  child: Column(
+                    children: [
+                      Container(
+                        height: 44,
+                        color: Colors.deepPurple,
+                        child: TabBar(
+                          tabs: List.generate(3, (index) => Container(
+                            child: Text("Tab ${index + 1}")
+                          )),
+                        ),
+                      ),
+                      Expanded(
+                        child: TabBarView(
+                          children: List.generate(3, (index) => Container(
+                            alignment: Alignment.center,
+                            child: Text("TabView ${index + 1}"),
+                          )),
+                        )
+                      ),
+                    ],
                   )
                 ),
               ),
-              SizedBox(height: 30,),
-              Container(
-                color: Colors.green,
-                child: TextButton(
-                    onPressed: () {
-                      _drawerController.openDrawer(DrawerGravity.right);
-                    },
-                    child: Text(
-                      "Open right drawer",
-                      style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.white
-                      ),
-                    )
-                ),
-              ),
-
             ],
           ),
         ),
@@ -113,10 +144,40 @@ class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateM
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(
-                "left drawer"
+              Container(
+                height: 44,
+                alignment: Alignment.center,
+                child: Text(
+                  "left drawer"
+                ),
               ),
-              TextField(),
+              Flexible(
+                child: DefaultTabController(
+                    key: UniqueKey(),
+                    length: 3,
+                    child: Column(
+                      children: [
+                        Container(
+                          height: 44,
+                          color: Colors.deepPurple,
+                          child: TabBar(
+                            tabs: List.generate(3, (index) => Container(
+                                child: Text("Tab ${index + 1}")
+                            )),
+                          ),
+                        ),
+                        Expanded(
+                            child: TabBarView(
+                              children: List.generate(3, (index) => Container(
+                                alignment: Alignment.center,
+                                child: Text("TabView ${index + 1}"),
+                              )),
+                            )
+                        ),
+                      ],
+                    )
+                ),
+              ),
             ],
           ),
         ),
@@ -135,14 +196,134 @@ class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateM
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(
-                "right drawer"
+              Container(
+                height: 44,
+                alignment: Alignment.center,
+                child: Text(
+                  "right drawer"
+                ),
               ),
-              TextField(),
+              Flexible(
+                child: DefaultTabController(
+                    key: UniqueKey(),
+                    length: 2,
+                    child: Column(
+                      children: [
+                        Container(
+                          height: 44,
+                          color: Colors.deepPurple,
+                          child: TabBar(
+                            tabs: List.generate(2, (index) => Container(
+                                child: Text("Tab ${index + 1}")
+                            )),
+                          ),
+                        ),
+                        Expanded(
+                            child: TabBarView(
+                              children: List.generate(2, (index) => Container(
+                                alignment: Alignment.center,
+                                child: Text("TabView ${index + 1}"),
+                              )),
+                            )
+                        ),
+                      ],
+                    )
+                ),
+              ),
             ]
           ),
         ),
       ),
+
+      // body: Container(
+      //   alignment: Alignment.center,
+      //   decoration: BoxDecoration(
+      //       gradient: LinearGradient(
+      //           begin: Alignment.centerLeft,
+      //           end: Alignment.centerRight,
+      //           colors: [Colors.red, Colors.white])),
+      //   padding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+      //   child: Column(
+      //     mainAxisSize: MainAxisSize.min,
+      //     children: [
+      //       Row(
+      //         mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      //         children: [
+      //           Container(
+      //             color: Colors.green,
+      //             child: TextButton(
+      //                 onPressed: () {
+      //                   _drawerController.openDrawer(DrawerGravity.left);
+      //                 },
+      //                 child: Text(
+      //                   "Open left drawer",
+      //                   style: TextStyle(fontSize: 14, color: Colors.white),
+      //                 )),
+      //           ),
+      //           Container(
+      //             color: Colors.green,
+      //             child: TextButton(
+      //                 onPressed: () {
+      //                   _drawerController.openDrawer(DrawerGravity.right);
+      //                 },
+      //                 child: Text(
+      //                   "Open right drawer",
+      //                   style: TextStyle(fontSize: 14, color: Colors.white),
+      //                 )),
+      //           ),
+      //         ],
+      //       ),
+      //       SizedBox(
+      //         height: 15,
+      //       ),
+      //       Flexible(
+      //         child: DefaultTabController(
+      //             length: 3,
+      //             child: Column(
+      //               children: [
+      //                 Container(
+      //                   height: 44,
+      //                   color: Colors.deepPurple,
+      //                   child: TabBar(
+      //                     tabs: List.generate(
+      //                         3,
+      //                         (index) =>
+      //                             Container(child: Text("Tab ${index + 1}"))),
+      //                   ),
+      //                 ),
+      //                 Expanded(
+      //                     child: TabBarView(
+      //                   children: List.generate(
+      //                       3,
+      //                       (index) => Container(
+      //                             alignment: Alignment.center,
+      //                             child: Text("TabView ${index + 1}"),
+      //                           )),
+      //                 )),
+      //               ],
+      //             )),
+      //       ),
+      //     ],
+      //   ),
+      // ),
+      // drawer: Container(
+      //   width: 300,
+      //   decoration: BoxDecoration(
+      //     gradient: LinearGradient(
+      //         begin: Alignment.centerLeft,
+      //         end: Alignment.centerRight,
+      //         colors: [Colors.green, Colors.white]),
+      //   ),
+      //   alignment: Alignment.center,
+      //   child: Column(
+      //     mainAxisSize: MainAxisSize.min,
+      //     children: [
+      //       Text("left drawer"),
+      //       TextField(),
+      //     ],
+      //   ),
+      // ),
+      // drawerEdgeDragWidth: 300,
     );
   }
 }
