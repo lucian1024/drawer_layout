@@ -4,6 +4,7 @@
 
 import 'package:flutter/animation.dart';
 import 'package:flutter/material.dart';
+import 'package:meta/meta.dart';
 
 /// The gravity of the drawer, which is used to indicate the current drawer.
 enum DrawerGravity {
@@ -38,7 +39,13 @@ class DrawerLayoutController extends AnimationController {
   final double speed;
 
   /// Indicate which drawer is opening or opened, null means all drawers are closed
-  DrawerGravity? gravity;
+  /// This is only used in the package
+  @internal
+  DrawerGravity? innerGravity;
+
+  /// Indicate which drawer is opening or opened, null means all drawers are closed
+  /// This is only provided for users.
+  DrawerGravity? get gravity => innerGravity;
 
   late DrawerLockMode _lockMode;
   set lockMode(DrawerLockMode lockMode) {
@@ -54,10 +61,10 @@ class DrawerLayoutController extends AnimationController {
       || _lockMode == DrawerLockMode.right;
   void _notifyLockMode() {
     if (_lockMode == DrawerLockMode.left) {
-      gravity = DrawerGravity.left;
+      innerGravity = DrawerGravity.left;
       value = 1;
     } else if (_lockMode == DrawerLockMode.right) {
-      gravity = DrawerGravity.right;
+      innerGravity = DrawerGravity.right;
       value = 1;
     }
   }
@@ -65,7 +72,7 @@ class DrawerLayoutController extends AnimationController {
   /// Check whether the drawer is opened or opening, exclude dragging to open since
   /// can not forecast dragging is to open or close drawer.
   bool isDrawerOpen(DrawerGravity gravity, {bool includeOpening = false}) {
-    if (this.gravity == gravity) {
+    if (this.innerGravity == gravity) {
       if (value == upperBound && !isAnimating) {
         // the drawer is opened
         return true;
@@ -83,7 +90,7 @@ class DrawerLayoutController extends AnimationController {
   /// Check whether the drawer is closed or closing, exclude dragging to close since
   /// can not forecast dragging is to open or close drawer.
   bool isDrawerClose(DrawerGravity gravity, {bool includeClosing = false}) {
-    if (this.gravity != gravity) {
+    if (this.innerGravity != gravity) {
       // the drawer is closed
       return true;
     }
@@ -113,7 +120,7 @@ class DrawerLayoutController extends AnimationController {
     }
 
     // if the other drawer is opened or opening or closing, close it first
-    if (this.gravity != null && this.gravity != gravity) {
+    if (this.innerGravity != null && this.innerGravity != gravity) {
       stop();
       await closeDrawer();
     }
@@ -123,7 +130,7 @@ class DrawerLayoutController extends AnimationController {
       stop();
     }
 
-    this.gravity = gravity;
+    this.innerGravity = gravity;
     if (animate) {
       await fling(velocity: speed);
     } else {
@@ -140,13 +147,13 @@ class DrawerLayoutController extends AnimationController {
       return;
     }
 
-    if (this.gravity == null) {
+    if (this.innerGravity == null) {
       // no drawer is opened or opening
       return;
     }
 
     // if the drawer has been closed, do nothing.
-    if (isDrawerClose(this.gravity!)) {
+    if (isDrawerClose(this.innerGravity!)) {
       return;
     }
 
@@ -160,6 +167,6 @@ class DrawerLayoutController extends AnimationController {
     } else {
       value = 0;
     }
-    this.gravity = null;
+    this.innerGravity = null;
   }
 }
