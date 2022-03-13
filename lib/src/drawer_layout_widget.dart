@@ -175,6 +175,43 @@ class DrawerLayoutState extends State<DrawerLayout> with SingleTickerProviderSta
     }
   }
 
+  Widget _getDrawer(DrawerGravity gravity, bool visible) {
+    return Visibility(
+      visible: visible,
+      maintainState: true,
+      child: FocusScope(
+        node: _focusScopeNode,
+        child: Align(
+          alignment: gravity == DrawerGravity.left ? Alignment.centerLeft : Alignment.centerRight,
+          child: Container(
+            width: _drawerWidth,
+            child: GestureDetector(
+              onHorizontalDragUpdate: _move,
+              onHorizontalDragEnd: (details) { _settle(details: details); },
+              onHorizontalDragCancel: _settle,
+              child: NotificationListener(
+                onNotification: (notification) {
+                  if (notification is ScrollStartNotification) {
+                  }
+                  if (notification is OverscrollNotification) {
+                    if (notification.dragDetails != null) {
+                      _move(notification.dragDetails!);
+                    }
+                  }
+                  if (notification is ScrollEndNotification) {
+                    _settle(details: notification.dragDetails);
+                  }
+                  return true;
+                },
+                child: gravity == DrawerGravity.left ? widget.leftDrawer! : widget.rightDrawer!,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   /// Build the content and drawer widgets.
   /// The content widget and the drawer widgets are layout in a Stack widget, and the
   /// content widget is upper to the drawer widgets. When the value of [controller]
@@ -189,36 +226,8 @@ class DrawerLayoutState extends State<DrawerLayout> with SingleTickerProviderSta
         return Container(
           child: Stack(
             children: <Widget>[
-              FocusScope(
-                node: _focusScopeNode,
-                child: Align(
-                  alignment: controller.innerGravity == DrawerGravity.left ? Alignment.centerLeft : Alignment.centerRight,
-                  child: Container(
-                    width: _drawerWidth,
-                    child: GestureDetector(
-                      onHorizontalDragUpdate: _move,
-                      onHorizontalDragEnd: (details) { _settle(details: details); },
-                      onHorizontalDragCancel: _settle,
-                      child: NotificationListener(
-                        onNotification: (notification) {
-                          if (notification is ScrollStartNotification) {
-                          }
-                          if (notification is OverscrollNotification) {
-                            if (notification.dragDetails != null) {
-                              _move(notification.dragDetails!);
-                            }
-                          }
-                          if (notification is ScrollEndNotification) {
-                              _settle(details: notification.dragDetails);
-                          }
-                          return true;
-                        },
-                        child: controller.innerGravity == DrawerGravity.left ? widget.leftDrawer! : widget.rightDrawer!,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
+              _getDrawer(DrawerGravity.left, controller.gravity == DrawerGravity.left),
+              _getDrawer(DrawerGravity.right, controller.gravity == DrawerGravity.right),
               GestureDetector(
                 onTap: controller.value == controller.upperBound ? controller.closeDrawer : null,
                 onHorizontalDragDown: _handleDragDown,
