@@ -175,4 +175,10 @@ class DrawerLayoutController extends AnimationController {
     }
     this.innerGravity = null;
   }
+
+  @internal
+  @override
+  set value(double newValue) {
+    super.value = newValue;
+  }
 }
