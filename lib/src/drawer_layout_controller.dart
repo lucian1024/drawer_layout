@@ -12,9 +12,15 @@ enum DrawerGravity {
   right,
 }
 
+/// Lock mode of the drawer. The drawer can not open or close after it is locked.
 enum DrawerLockMode {
-  left,
-  right,
+  /// lock with current state
+  lock,
+  /// lock with left drawer opened
+  lockLeft,
+  /// lock with right drawer opened
+  lockRight,
+  /// unlock with current state
   unlock
 }
 
@@ -57,13 +63,13 @@ class DrawerLayoutController extends AnimationController {
     _notifyLockMode();
   }
   DrawerLockMode get lockMode => _lockMode;
-  bool isLocked() => _lockMode == DrawerLockMode.left
-      || _lockMode == DrawerLockMode.right;
+  bool isLocked() => _lockMode == DrawerLockMode.lockLeft
+      || _lockMode == DrawerLockMode.lockRight || _lockMode == DrawerLockMode.lock;
   void _notifyLockMode() {
-    if (_lockMode == DrawerLockMode.left) {
+    if (_lockMode == DrawerLockMode.lockLeft) {
       innerGravity = DrawerGravity.left;
       value = 1;
-    } else if (_lockMode == DrawerLockMode.right) {
+    } else if (_lockMode == DrawerLockMode.lockRight) {
       innerGravity = DrawerGravity.right;
       value = 1;
     }
