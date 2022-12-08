@@ -111,6 +111,17 @@ class DrawerLayoutController extends AnimationController {
     _hasRightDrawer = hasRightDrawer;
   }
 
+  /// The [TextDirection] of drawer.
+  /// The left drawer will swipes in from either left-to-right ([TextDirection.ltr]) or
+  /// right-to-left ([TextDirection.rtl]) and the right drawer will swipes in from either
+  /// right-to-left ([TextDirection.ltr]) or left-to-right ([TextDirection.rtl]).
+  TextDirection _textDirection = TextDirection.ltr;
+  TextDirection get textDirection => _textDirection;
+  @internal
+  set textDirection(TextDirection textDirection) {
+    _textDirection = textDirection;
+  }
+
   /// Check whether the drawer is opened or opening, exclude dragging to open since
   /// can not forecast dragging is to open or close drawer.
   bool isDrawerOpen(DrawerGravity gravity, {bool includeOpening = false}) {
@@ -248,9 +259,15 @@ class DrawerLayoutController extends AnimationController {
       return;
     }
 
+    double primaryDelta = details.delta.dx;
+    // check the [TextDirection] of the drawer
+    if (_textDirection == TextDirection.rtl) {
+      primaryDelta = -primaryDelta;
+    }
+
     if (innerGravity == null) {
       // the direction of the first movement determines which drawer to open
-      final gravity = details.delta.dx < 0 ? DrawerGravity.right: DrawerGravity.left;
+      final gravity = primaryDelta < 0 ? DrawerGravity.right: DrawerGravity.left;
 
       // check whether the drawer is existed or not.
       if ((gravity == DrawerGravity.left && !_hasLeftDrawer)
@@ -261,7 +278,7 @@ class DrawerLayoutController extends AnimationController {
       innerGravity = gravity;
     }
 
-    double delta = details.delta.dx / drawerWidth!;
+    double delta = primaryDelta / drawerWidth!;
     // for the right drawer, slide to the left means opening the drawer. Thus,
     // the delta should be reverse.
     if (innerGravity == DrawerGravity.right) {
@@ -281,6 +298,11 @@ class DrawerLayoutController extends AnimationController {
     if (details.velocity.pixelsPerSecond.dx.abs() >= _minFlingVelocity) {
       double visualVelocity = (details.velocity.pixelsPerSecond.dx) / drawerWidth!;
 
+      // check the [TextDirection] of the drawer
+      if (_textDirection == TextDirection.rtl) {
+        visualVelocity = -visualVelocity;
+      }
+
       // for the right drawer, slide to the left means opening the drawer. Thus,
       // the delta should be reverse.
       if (innerGravity == DrawerGravity.right) {
@@ -288,7 +310,6 @@ class DrawerLayoutController extends AnimationController {
       }
 
       velocity = visualVelocity;
-      fling(velocity: visualVelocity);
     } else if (value > (upperBound - lowerBound) / 2) {
       velocity = speed;
     } else {
@@ -297,10 +318,9 @@ class DrawerLayoutController extends AnimationController {
 
     await fling(velocity: velocity);
 
-
     dispatchDrawerStatusEvent(true);
 
-    if (value == lowerBound){
+    if (value == lowerBound) {
       innerGravity = null;
     }
   }

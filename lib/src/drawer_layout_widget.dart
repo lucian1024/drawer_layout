@@ -107,6 +107,13 @@ class DrawerLayoutState extends State<DrawerLayout> with SingleTickerProviderSta
     super.initState();
   }
 
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    controller.textDirection = Directionality.of(context);
+  }
+
   @override
   void didUpdateWidget(DrawerLayout oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -149,9 +156,9 @@ class DrawerLayoutState extends State<DrawerLayout> with SingleTickerProviderSta
       ),
     );
 
-    return Positioned(
-      left: gravity == DrawerGravity.left ? 0 : null,
-      right: gravity == DrawerGravity.right ? 0 : null,
+    return PositionedDirectional(
+      start: gravity == DrawerGravity.left ? 0 : null,
+      end: gravity == DrawerGravity.right ? 0 : null,
       top: 0,
       bottom: 0,
       child: Visibility(
@@ -161,7 +168,7 @@ class DrawerLayoutState extends State<DrawerLayout> with SingleTickerProviderSta
           node: _focusScopeNode,
           child: widget.showType == DrawerShowType.push ? drawer : Align(
             widthFactor: controller.value,
-            alignment: gravity == DrawerGravity.left ? Alignment.centerRight : Alignment.centerLeft,
+            alignment: gravity == DrawerGravity.left ? AlignmentDirectional.centerEnd : AlignmentDirectional.centerStart,
             child: drawer,
           ),
         ),
@@ -192,10 +199,10 @@ class DrawerLayoutState extends State<DrawerLayout> with SingleTickerProviderSta
       excludeFromSemantics: true,
       child: widget.showType == DrawerShowType.overlay ? content : RepaintBoundary(
         child: Align(
-          alignment: controller.innerGravity == DrawerGravity.left ? Alignment.centerRight : Alignment.centerLeft,
+          alignment: controller.innerGravity == DrawerGravity.left ? AlignmentDirectional.centerEnd : AlignmentDirectional.centerStart,
           child: Align(
               widthFactor: (_contentWidth! - _drawerWidth! * controller.value) / _contentWidth!,
-              alignment: controller.innerGravity == DrawerGravity.left ? Alignment.centerLeft : Alignment.centerRight,
+              alignment: controller.innerGravity == DrawerGravity.left ? AlignmentDirectional.centerStart : AlignmentDirectional.centerEnd,
               child: content,
           ),
         ),
