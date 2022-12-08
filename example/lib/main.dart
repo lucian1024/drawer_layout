@@ -16,7 +16,10 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      home: MyHomePage(title: 'Flutter DrawerLayout Home Page'),
+      home: Directionality(
+        textDirection: TextDirection.rtl,
+        child: MyHomePage(title: 'Flutter DrawerLayout Home Page')
+      ),
     );
   }
 }

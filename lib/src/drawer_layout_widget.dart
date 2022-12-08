@@ -4,8 +4,15 @@
  */
 
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
+
 import 'drawer_layout_controller.dart';
+
+enum DrawerShowType {
+  /// The drawer will push the content when it is shown
+  push,
+  /// The drawer will over the content when it is shown
+  overlay,
+}
 
 class DrawerLayout extends StatefulWidget {
   const DrawerLayout({
@@ -16,6 +23,8 @@ class DrawerLayout extends StatefulWidget {
     this.drawerWidthOffset,
     this.controller,
     this.scrimColor,
+    this.drawerEnableOpenDragGesture = true,
+    this.showType = DrawerShowType.push,
     Key? key,
   }) : assert(leftDrawer != null || rightDrawer != null),
        assert(drawerWidthFactor >= 0 && drawerWidthFactor <= 1),
@@ -56,14 +65,23 @@ class DrawerLayout extends StatefulWidget {
   /// The controller to control the [DrawerLayout]
   final DrawerLayoutController? controller;
 
+  /// Determines if the [DrawerLayout] can be opened with a drag
+  /// gesture.
+  ///
+  /// By default, the drag gesture is enabled.
+  final bool drawerEnableOpenDragGesture;
+
+  /// The show type of the drawer
+  /// @see [DrawerShowType]
+  ///
+  /// By default, the type is [DrawerShowType.push].
+  final DrawerShowType showType;
+
   @override
   DrawerLayoutState createState() => DrawerLayoutState();
 }
 
 class DrawerLayoutState extends State<DrawerLayout> with SingleTickerProviderStateMixin {
-  /// The min fling velocity to open or close the drawer directly
-  final double _minFlingVelocity = 365.0;
-
   /// The controller to control the [DrawerLayout]
   late DrawerLayoutController controller;
   late ColorTween _scrimColorTween;
@@ -80,11 +98,22 @@ class DrawerLayoutState extends State<DrawerLayout> with SingleTickerProviderSta
   @override
   void initState() {
     controller = widget.controller ?? DrawerLayoutController(vsync: this);
-    controller..addListener(_animationChanged);
+    controller..addListener(_animationChanged)
+      ..hasLeftDrawer = (widget.leftDrawer != null)
+      ..hasRightDrawer = (widget.rightDrawer != null);
 
     _scrimColorTween = ColorTween(begin: Colors.transparent, end: widget.scrimColor ?? Colors.black54);
     
     super.initState();
+  }
+
+  @override
+  void didUpdateWidget(DrawerLayout oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget != widget) {
+      controller..hasLeftDrawer = (widget.leftDrawer != null)
+        ..hasRightDrawer = (widget.rightDrawer != null);
+    }
   }
 
   /// Refresh with with animation.
@@ -92,75 +121,6 @@ class DrawerLayoutState extends State<DrawerLayout> with SingleTickerProviderSta
     setState(() {
       // The animation controller's state is our build state, and it changed already.
     });
-  }
-
-  void _handleDragDown(DragDownDetails details) {
-    if (controller.isLocked()) {
-      return;
-    }
-
-    // if the drawers are closed when drag start, reset gravity to null
-    if (controller.value == controller.lowerBound) {
-      controller.innerGravity = null;
-    }
-
-    controller.stop();
-  }
-
-  void _move(DragUpdateDetails details) {
-    if (controller.isLocked()) {
-      return;
-    }
-
-    if (controller.innerGravity == null) {
-      // the direction of the first movement determines which drawer to open
-      final gravity = details.delta.dx < 0 ? DrawerGravity.right: DrawerGravity.left;
-
-      // check whether the drawer is existed or not.
-      if ((gravity == DrawerGravity.left && widget.leftDrawer == null)
-          || (gravity == DrawerGravity.right && widget.rightDrawer == null)) {
-        return;
-      }
-
-      controller.innerGravity = gravity;
-    }
-
-    double delta = details.delta.dx / _drawerWidth!;
-    // for the right drawer, slide to the left means opening the drawer. Thus,
-    // the delta should be reverse.
-    if (controller.innerGravity == DrawerGravity.right) {
-      delta = -delta;
-    }
-
-    controller.value += delta;
-  }
-
-  void _settle({DragEndDetails? details}) {
-    if (controller.isLocked()) {
-      return;
-    }
-
-    if (controller.value == controller.lowerBound
-      || controller.value == controller.upperBound) {
-      return;
-    }
-
-    // if sliding velocity is very fast, open or close the drawer directly.
-    if (details != null && details.velocity.pixelsPerSecond.dx.abs() >= _minFlingVelocity) {
-      double visualVelocity = (details.velocity.pixelsPerSecond.dx) / _drawerWidth!;
-
-      // for the right drawer, slide to the left means opening the drawer. Thus,
-      // the delta should be reverse.
-      if (controller.innerGravity == DrawerGravity.right) {
-        visualVelocity = -visualVelocity;
-      }
-
-      controller.fling(velocity: visualVelocity);
-    } else if (controller.value > (controller.upperBound - controller.lowerBound) / 2) {
-      controller.openDrawer(controller.innerGravity!);
-    } else {
-      controller.closeDrawer();
-    }
   }
 
   /// Calculate the content width and drawer width
@@ -173,45 +133,75 @@ class DrawerLayoutState extends State<DrawerLayout> with SingleTickerProviderSta
     } else {
       _drawerWidth = _contentWidth! * widget.drawerWidthFactor;
     }
+    controller.drawerWidth = _drawerWidth;
   }
 
   Widget _getDrawer(DrawerGravity gravity, bool visible) {
-    return Visibility(
-      visible: visible,
-      maintainState: true,
-      child: FocusScope(
-        node: _focusScopeNode,
-        child: Align(
-          alignment: gravity == DrawerGravity.left ? Alignment.centerLeft : Alignment.centerRight,
-          child: Container(
-            width: _drawerWidth,
-            child: GestureDetector(
-              onHorizontalDragUpdate: _move,
-              onHorizontalDragEnd: (details) { _settle(details: details); },
-              onHorizontalDragCancel: _settle,
-              child: NotificationListener(
-                onNotification: (notification) {
-                  if (notification is ScrollStartNotification) {
-                  }
-                  if (notification is OverscrollNotification) {
-                    if (notification.dragDetails != null) {
-                      _move(notification.dragDetails!);
-                    }
-                  }
-                  if (notification is ScrollEndNotification) {
-                    _settle(details: notification.dragDetails);
-                  }
-                  return true;
-                },
-                child: gravity == DrawerGravity.left ? widget.leftDrawer! : widget.rightDrawer!,
-              ),
-            ),
+    final drawer = RepaintBoundary(
+      child: Container(
+        width: _drawerWidth,
+        child: GestureDetector(
+          onHorizontalDragStart: controller.dragStart,
+          onHorizontalDragUpdate: controller.dragUpdate,
+          onHorizontalDragEnd: controller.dragEnd,
+          child: gravity == DrawerGravity.left ? widget.leftDrawer! : widget.rightDrawer!,
+        ),
+      ),
+    );
+
+    return Positioned(
+      left: gravity == DrawerGravity.left ? 0 : null,
+      right: gravity == DrawerGravity.right ? 0 : null,
+      top: 0,
+      bottom: 0,
+      child: Visibility(
+        visible: visible,
+        maintainState: true,
+        child: FocusScope(
+          node: _focusScopeNode,
+          child: widget.showType == DrawerShowType.push ? drawer : Align(
+            widthFactor: controller.value,
+            alignment: gravity == DrawerGravity.left ? Alignment.centerRight : Alignment.centerLeft,
+            child: drawer,
           ),
         ),
       ),
     );
   }
 
+  Widget get content {
+    final content = RepaintBoundary(
+      child: Stack(
+        children: [
+          widget.content,
+          Visibility(
+            visible: controller.value > controller.lowerBound,
+            child: Container(
+              color: _scrimColorTween.evaluate(controller),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    return GestureDetector(
+      onTap: controller.value == controller.upperBound ? () { controller.innerCloseDrawer(userScroll: true); } : null,
+      onHorizontalDragStart: widget.drawerEnableOpenDragGesture ? controller.dragStart : null,
+      onHorizontalDragUpdate: widget.drawerEnableOpenDragGesture ? controller.dragUpdate : null,
+      onHorizontalDragEnd: widget.drawerEnableOpenDragGesture ? controller.dragEnd : null,
+      excludeFromSemantics: true,
+      child: widget.showType == DrawerShowType.overlay ? content : RepaintBoundary(
+        child: Align(
+          alignment: controller.innerGravity == DrawerGravity.left ? Alignment.centerRight : Alignment.centerLeft,
+          child: Align(
+              widthFactor: (_contentWidth! - _drawerWidth! * controller.value) / _contentWidth!,
+              alignment: controller.innerGravity == DrawerGravity.left ? Alignment.centerLeft : Alignment.centerRight,
+              child: content,
+          ),
+        ),
+      ),
+    );
+  }
   /// Build the content and drawer widgets.
   /// The content widget and the drawer widgets are layout in a Stack widget, and the
   /// content widget is upper to the drawer widgets. When the value of [controller]
@@ -223,56 +213,18 @@ class DrawerLayoutState extends State<DrawerLayout> with SingleTickerProviderSta
       builder: (context, constraints) {
         _calculateWidth(constraints);
 
-        return Container(
-          child: Stack(
-            children: <Widget>[
+        return Stack(
+          children: <Widget>[
+            if (widget.leftDrawer != null && widget.showType == DrawerShowType.push)
               _getDrawer(DrawerGravity.left, controller.gravity == DrawerGravity.left),
+            if (widget.rightDrawer != null && widget.showType == DrawerShowType.push)
               _getDrawer(DrawerGravity.right, controller.gravity == DrawerGravity.right),
-              GestureDetector(
-                onTap: controller.value == controller.upperBound ? controller.closeDrawer : null,
-                onHorizontalDragDown: _handleDragDown,
-                onHorizontalDragUpdate: _move,
-                onHorizontalDragEnd: (details) { _settle(details: details); },
-                onHorizontalDragCancel: _settle,
-                excludeFromSemantics: true,
-                child: RepaintBoundary(
-                  child: Align(
-                    alignment: controller.innerGravity == DrawerGravity.left ? Alignment.centerRight : Alignment.centerLeft,
-                    child: Align(
-                      widthFactor: (_contentWidth! - _drawerWidth! * controller.value) / _contentWidth!,
-                      alignment: controller.innerGravity == DrawerGravity.left ? Alignment.centerLeft : Alignment.centerRight,
-                      child: RepaintBoundary(
-                          child: Stack(
-                            children: [
-                              NotificationListener(
-                                  onNotification: (notification) {
-                                    if (notification is ScrollStartNotification) {
-                                    }
-                                    if (notification is OverscrollNotification) {
-                                      if (notification.dragDetails != null) {
-                                        _move(notification.dragDetails!);
-                                      }
-                                    }
-                                    if (notification is ScrollEndNotification) {
-                                      _settle(details: notification.dragDetails);
-                                    }
-                                    return true;
-                                  },
-                                  child: widget.content
-                              ),
-                              if (controller.value > controller.lowerBound)
-                                Container(
-                                  color: _scrimColorTween.evaluate(controller),
-                                ),
-                            ]
-                          )
-                      )
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
+            content,
+            if (widget.leftDrawer != null && widget.showType == DrawerShowType.overlay)
+              _getDrawer(DrawerGravity.left, controller.gravity == DrawerGravity.left),
+            if (widget.rightDrawer != null && widget.showType == DrawerShowType.overlay)
+              _getDrawer(DrawerGravity.right, controller.gravity == DrawerGravity.right),
+          ],
         );
       }
     );
